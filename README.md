@@ -26,6 +26,7 @@ https://drive.google.com/file/d/1G6H4iq8ShN9-w8atgrdN6-1Vje6suVce/view?usp=shari
 Пакет для работы с графом (класс + методы)
 
 1) `graph.py` - описание класса графа
+2) `graph_functions.py` - базовые функции работы с объектами класса графа
 
 ### `Docs/`
 1) `Docs/requirements.txt` - необходимые для запуска проекта модули Python
