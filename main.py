@@ -4,7 +4,7 @@
 import pathlib
 
 # Самописные пакеты
-from roads_graph import graph
+from roads_gigraph import graph
 from roads_graph import functions as func
 
 # Дополнительные скрипты
