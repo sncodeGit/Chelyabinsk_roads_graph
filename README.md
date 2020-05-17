@@ -32,8 +32,8 @@ https://drive.google.com/file/d/1G6H4iq8ShN9-w8atgrdN6-1Vje6suVce/view?usp=shari
 1) `Docs/requirements.txt` - необходимые для запуска проекта модули Python
 2) `Docs/img/*` - изображения, сохраненные для дальнейшего использования при презентации проекта
 
-### osm_parsing.py
+### `osm_parsing.py`
 Парсинг OSM-файла
 
-### config.py
+### `config.py`
 Файл с переменными непакетной части проекта
