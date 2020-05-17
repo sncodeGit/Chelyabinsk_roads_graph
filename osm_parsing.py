@@ -55,7 +55,8 @@ def make_part_files(osm_file, oneway_roads_file, twoway_roads_file, buildings_fi
                     node = root.find("./node[@id='%s']" % ref_id)
                     way[counter] = node
                 counter += 1
-        
+                
+        # Добавим узел в нужное дерево, если мы собираемся затем его записать в дополнительные файлы
         if way_type['building']:
             buildings_root.append(way)
         
