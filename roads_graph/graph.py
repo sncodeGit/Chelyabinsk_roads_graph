@@ -10,13 +10,13 @@ class NodeType(object):
 # Значение - точка является составляющей дороги
 class Road(NodeType):
 	def __init__(self):
-		self.num = 1
+		self.type = 1
 
 # Дескриптор типа узла
 # Значение - точка является зданием
 class Building(NodeType):
 	def __init__(self):
-		self.num = 2
+		self.type = 2
 
 # Основной объект класса
 # Содержит георгафические координаты, соседей и дескриптор типа (NodeType)
