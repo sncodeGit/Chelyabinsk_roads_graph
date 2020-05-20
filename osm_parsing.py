@@ -11,7 +11,3 @@ import config
 def convert_to_graph(osm_file = config.osm_file):
     graph = ox.graph_from_file(osm_file, simplify= False, retain_all= True, name= 'Chel')
     return graph
-
-g = convert_to_graph()
-for i in g.nodes():
-    print(i.attribute)
