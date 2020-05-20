@@ -1,3 +1,5 @@
 # Модули Python (pip3 install)
-pathlib
-geopy
+?pathlib
+?geopy
+networkx
+osmnx

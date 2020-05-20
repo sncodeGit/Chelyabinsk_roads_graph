@@ -4,7 +4,6 @@ import pathlib
 
 # Путь до OSM-файла
 osm_file = pathlib.Path.cwd() / 'OSM' / 'Chelyabinsk.osm'
-
 """
 Переменные предобработки данных (создание специальных файлов)
 """
