@@ -7,7 +7,9 @@ import pandas as pd
 import osmnx as ox
 import numpy as np
 import xml.etree.ElementTree as ET
-import random
+
+
+np.random.seed(0)
 
 # Дополнительные скрипты
 import config
@@ -55,39 +57,23 @@ def get_random_of_objecs(lst, N, largest_component = None):
     return list(res)
 
 def get_highways(osm_file = config.osm_file):
-    # root = ET.parse(osm_file).getroot()
-    # nodes = root.findall('./way')
-    # result = []
-    #
-    # for node in nodes:
-    #     refs = []
-    #     f = False
-    #     for param in node:
-    #         if 'ref' in param.attrib.keys():
-    #             refs.append(int(param.attrib['ref']))
-    #         else:
-    #             if param.attrib['k'] == 'highway':
-    #                 f = True
-    #         if f:
-    #             result.append(refs)
-    # result = [i for sub in result for i in sub]
-    # return (result)
     root = ET.parse(osm_file).getroot()
     nodes = root.findall('./way')
-    res_list = []
+    result = []
+
     for node in nodes:
-        refs_list = []
-        tags_list = []
-        for child in node:
-            if 'ref' in list(child.attrib.keys()):
-                refs_list.append(int(child.attrib['ref']))
+        refs = []
+        f = False
+        for param in node:
+            if 'ref' in param.attrib.keys():
+                refs.append(int(param.attrib['ref']))
             else:
-                tags_list.append({'key': child.attrib['k'], 'value': child.attrib['v']})
-        for el in tags_list:
-            if el['key'] == 'highway':
-                res_list.append(refs_list)
-    res_list = [point for sublist in res_list for point in sublist]
-    return (res_list)
+                if param.attrib['k'] == 'highway':
+                    f = True
+            if f:
+                result.append(refs)
+    result = [i for sub in result for i in sub]
+    return (result)
 
 
 def corrected_objects(graph, objects_list, points_list):
@@ -103,10 +89,8 @@ def corrected_objects(graph, objects_list, points_list):
     return list(set(corrected_objects))
 
 
-def get_result_graph(graph, objects_list, nodes_list, visualize = True):
+def get_result_graph(graph, objects_list, nodes_list, visualize = True, strong_components = False):
     graph_simp = ox.simplify.simplify_graph(graph)
-    print(len(nodes_list))
-
     graph_dict = dict(graph.nodes(data=True))
     df_obj = pd.DataFrame({node: graph_dict[node] for node in objects_list if node in graph_dict}).T
     print('Numbuer of all nods', len(graph_simp.nodes))
@@ -133,6 +117,17 @@ def get_result_graph(graph, objects_list, nodes_list, visualize = True):
                 graph_simp.add_edge(simp_path[0], osmid)
                 graph_simp.add_edge(osmid, simp_path[-1])
 
+    if strong_components:
+        for component in list(nx.strongly_connected_components(graph_simp)):
+            if len(component) < 100:
+                for node in component:
+                    to_remove = []
+                    if node not in (nodes_list + objects_list):
+                        to_remove.append(node)
+                    else:
+                        break
+                    graph_simp.remove_nodes_from(to_remove)
+
     if visualize:
         oc = ['r' if osmid in objects_list else 'g' if osmid in nodes_list
         else 'b' for osmid in graph_simp.nodes()]
@@ -157,20 +152,18 @@ def get_result_graph(graph, objects_list, nodes_list, visualize = True):
     return graph_simp
 
 
-def get_and_visual_graph(number_objs = 10, number_nodes = 100):
+def get_and_visual_graph(number_objs = 5, number_nodes = 10):
     G, LC = convert_to_graph()
     obj, nodes = get_nodes_and_objs()
     road_points = get_highways()
     c_obj = corrected_objects(G, obj, road_points)
     c_nodes = corrected_objects(G, nodes, road_points)
 
-    c_obj = get_random_of_objecs(c_obj, number_objs)
-    c_nodes = get_random_of_objecs(c_nodes, number_nodes)
+    c_obj = get_random_of_objecs(c_obj, number_objs, LC)
+    c_nodes = get_random_of_objecs(c_nodes, number_nodes, LC)
 
-    G = get_result_graph(G, c_obj, c_nodes, True)
+    G = get_result_graph(G, c_obj, c_nodes, visualize= False, strong_components= LC)
     for obj in c_obj:
         G.nodes[obj]['weight'] = np.random.choice([1, 1.5, 2])
-    return G
-get_and_visual_graph()
-# for i in G.edges():
-#     print(i)
+    return G, c_obj, c_nodes
+
