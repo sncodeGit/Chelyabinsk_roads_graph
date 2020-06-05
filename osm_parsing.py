@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# # -*- coding: utf-8 -*-
 
 # Необходимые модули
 from matplotlib import pyplot as plt
@@ -7,6 +7,7 @@ import pandas as pd
 import osmnx as ox
 import numpy as np
 import xml.etree.ElementTree as ET
+import random
 
 # Дополнительные скрипты
 import config
@@ -36,11 +37,12 @@ def get_ids(type_object, osm_file = config.osm_file, category = 'amenity'):
     return list(set(result))
 
 def get_nodes_and_objs():
-    objs= get_ids('school')
-    objs+= get_ids('hospital', category='healthcare')
-
-    nodes = get_ids('apartments', category= 'building')
-    nodes += get_ids(get_ids('detached', category='building'))
+    objs1= get_ids('school')
+    objs2= get_ids('hospital', category='healthcare')
+    objs = objs1+objs2
+    nodes1 = get_ids('apartments', category= 'building')
+    nodes2 = get_ids(get_ids('detached', category='building'))
+    nodes = nodes1 + nodes2
     return set(objs), set(nodes)
 
 def get_random_of_objecs(lst, N, largest_component = None):
@@ -53,23 +55,39 @@ def get_random_of_objecs(lst, N, largest_component = None):
     return list(res)
 
 def get_highways(osm_file = config.osm_file):
+    # root = ET.parse(osm_file).getroot()
+    # nodes = root.findall('./way')
+    # result = []
+    #
+    # for node in nodes:
+    #     refs = []
+    #     f = False
+    #     for param in node:
+    #         if 'ref' in param.attrib.keys():
+    #             refs.append(int(param.attrib['ref']))
+    #         else:
+    #             if param.attrib['k'] == 'highway':
+    #                 f = True
+    #         if f:
+    #             result.append(refs)
+    # result = [i for sub in result for i in sub]
+    # return (result)
     root = ET.parse(osm_file).getroot()
     nodes = root.findall('./way')
-    result = []
-
+    res_list = []
     for node in nodes:
-        refs = []
-        f = False
-        for param in node:
-            if 'ref' in param.attrib.keys():
-                refs.append(int(param.attrib['ref']))
+        refs_list = []
+        tags_list = []
+        for child in node:
+            if 'ref' in list(child.attrib.keys()):
+                refs_list.append(int(child.attrib['ref']))
             else:
-                if param.attrib['k'] == 'highway':
-                    f = True
-            if f:
-                result.append(refs)
-    result = [i for sub in result for i in sub]
-    return (result)
+                tags_list.append({'key': child.attrib['k'], 'value': child.attrib['v']})
+        for el in tags_list:
+            if el['key'] == 'highway':
+                res_list.append(refs_list)
+    res_list = [point for sublist in res_list for point in sublist]
+    return (res_list)
 
 
 def corrected_objects(graph, objects_list, points_list):
@@ -85,16 +103,16 @@ def corrected_objects(graph, objects_list, points_list):
     return list(set(corrected_objects))
 
 
-def get_resulting_graph(graph, objects_list, nodes_list, visualize, strong_components=False, isolates=False):
+def get_result_graph(graph, objects_list, nodes_list, visualize = True):
     graph_simp = ox.simplify.simplify_graph(graph)
     print(len(nodes_list))
 
     graph_dict = dict(graph.nodes(data=True))
     df_obj = pd.DataFrame({node: graph_dict[node] for node in objects_list if node in graph_dict}).T
-    print('Nodes number be4 adding:', len(graph_simp.nodes))
-    print('df_obj:', len(df_obj))
+    print('Numbuer of all nods', len(graph_simp.nodes))
+    print('Number of random objs:', len(df_obj))
     df_nodes = pd.DataFrame({node: graph_dict[node] for node in nodes_list if node in graph_dict}).T
-    print('df_nodes:', len(df_nodes))
+    print('Nubmer of random nodes:', len(df_nodes))
     for simp_path in ox.simplify.get_paths_to_simplify(graph):
         for osmid in simp_path:
             argwhere = np.argwhere(df_obj['osmid'].to_numpy() == osmid)
@@ -105,9 +123,6 @@ def get_resulting_graph(graph, objects_list, nodes_list, visualize, strong_compo
                 graph_simp.add_edge(simp_path[0], osmid)
                 graph_simp.add_edge(osmid, simp_path[-1])
 
-    print('Nodes number after objects adding:', len(graph_simp.nodes))
-    print('Objects inters:', len(set(objects_list).intersection(set(graph_simp.nodes()))))
-
     for simp_path in ox.simplify.get_paths_to_simplify(graph):
         for osmid in simp_path:
             argwhere = np.argwhere(df_nodes['osmid'].to_numpy() == osmid)
@@ -117,24 +132,6 @@ def get_resulting_graph(graph, objects_list, nodes_list, visualize, strong_compo
                 graph_simp.add_node(osmid, **obj_node)
                 graph_simp.add_edge(simp_path[0], osmid)
                 graph_simp.add_edge(osmid, simp_path[-1])
-    print('Nodes number after nodes adding:', len(graph_simp.nodes))
-    print('Nodes inters:', len(set(nodes_list).intersection(set(graph_simp.nodes()))))
-
-    if strong_components:
-        for component in list(nx.strongly_connected_components(graph_simp)):
-            if len(component) < 100:
-                for node in component:
-                    to_remove = []
-                    if node not in (nodes_list + objects_list):
-                        to_remove.append(node)
-                    else:
-                        break
-                    graph_simp.remove_nodes_from(to_remove)
-
-    print(len(graph_simp.nodes))
-
-    if isolates:
-        graph.remove_nodes_from(list(nx.isolates(graph)))
 
     if visualize:
         oc = ['r' if osmid in objects_list else 'g' if osmid in nodes_list
@@ -155,21 +152,25 @@ def get_resulting_graph(graph, objects_list, nodes_list, visualize, strong_compo
         nx.draw_networkx(graph, pos=pos, nodelist=objects_list + nodes_list, node_color=nc, with_labels=False, arrows=False,
                          node_size=350, edge_color='gray')
         nx.draw_networkx_labels(graph, pos=pos, labels=labels, font_size=10)
-        plt.savefig('Chosen_nodes_and_objects.png')
+        plt.savefig(config.path + 'Chosen_nodes_and_objects.png')
 
     return graph_simp
 
-#
-# G, LC = convert_to_graph()
-# obj, nodes = get_nodes_and_objs()
-# road_points = get_highways()
-# c_obj = corrected_objects(G, obj, road_points)
-# c_nodes = corrected_objects(G, nodes, road_points)
-#
-# c_obj = get_random_of_objecs(c_obj, 10, largest_component=LC)
-# c_nodes = get_random_of_objecs(c_nodes, 100, largest_component=LC)
-#
-# G = get_resulting_graph(G, c_obj, c_nodes, True, strong_components= True)
 
+def get_and_visual_graph(number_objs = 10, number_nodes = 100):
+    G, LC = convert_to_graph()
+    obj, nodes = get_nodes_and_objs()
+    road_points = get_highways()
+    c_obj = corrected_objects(G, obj, road_points)
+    c_nodes = corrected_objects(G, nodes, road_points)
+
+    c_obj = get_random_of_objecs(c_obj, number_objs)
+    c_nodes = get_random_of_objecs(c_nodes, number_nodes)
+
+    G = get_result_graph(G, c_obj, c_nodes, True)
+    for obj in c_obj:
+        G.nodes[obj]['weight'] = np.random.choice([1, 1.5, 2])
+    return G
+get_and_visual_graph()
 # for i in G.edges():
 #     print(i)
