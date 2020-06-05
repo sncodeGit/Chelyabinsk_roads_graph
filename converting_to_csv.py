@@ -3,6 +3,7 @@ import networkx as nx
 import config
 import numpy as np
 import pickle
+from _collections import defaultdict
 
 def convert_to_csv(graph, c_obj, c_nodes, output_path = config.path, adj_mat = False):
     if adj_mat:
@@ -31,3 +32,38 @@ def convert_to_csv(graph, c_obj, c_nodes, output_path = config.path, adj_mat = F
         pickle.dump(graph, f)
 
     return df_graph
+
+
+def gaversin_distance(x1, y1, x2, y2):
+    R = 6371
+    x1 = x1 * np.pi / 180
+    x2 = x2 * np.pi / 180
+    y1 = y1 * np.pi / 180
+    y2 = y2 * np.pi / 180
+    sin1 = np.sin((y2 - y1) / 2)
+    sin2 = np.sin((x2 - x1) / 2)
+    dist = 2 * R * np.arcsin(np.sqrt(sin1 ** 2 + (sin2 ** 2) * np.cos(y1) * np.cos(y2)))
+
+    return dist
+
+def df_to_edges(graph: pd.DataFrame):
+    graph_dict = graph.T.to_dict()
+    edges = defaultdict(list)
+
+    for src_id, row_dict in graph_dict.items():
+        src_x = row_dict['x']
+        src_y = row_dict['y']
+
+        for dst_id in row_dict['adj']:
+            dst_x = graph_dict[dst_id]['x']
+            dst_y = graph_dict[dst_id]['y']
+
+            weight = graph_dict[dst_id]['weight']
+            if not np.isnan(weight):
+                cost = weight * gaversin_distance(src_x, src_y, dst_x, dst_y)
+            else:
+                cost = gaversin_distance(src_x, src_y, dst_x, dst_y)
+
+            edges[src_id].append((cost, dst_id))
+
+    return edges
