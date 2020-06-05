@@ -3,15 +3,10 @@
 # Необходимые модули
 import pathlib
 
-# Самописные пакеты
-from roads_graph import graph
-from roads_graph import functions as func
-
 # Дополнительные скрипты
 import config
 import osm_parsing
+import converting_to_csv
 
-
-# Читаем содержимое OSM-файла
-with open(config.osm_file) as osm_file:
-        osm = osm_file.read()
+G, c_obj, c_nodes = osm_parsing.get_and_visual_graph()
+graph_df = converting_to_csv.convert_to_csv(G, c_obj, c_nodes)
