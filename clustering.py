@@ -187,11 +187,12 @@ model = model.fit(X)
 plot_dendrogram(model, truncate_mode='level', p=3)
 
 
-def get_clustroid(cluster):
+def get_centr(cluster):
+    # Среднее арифметическое
     mean = np.mean(cluster, axis=0)
-    clustroid = np.argmin([gaversin_distance(*mean, x, y) for x, y in cluster])
+    centr = np.argmin([gaversin_distance(mean[0], mean[1], x, y) for x, y in cluster])
 
-    return clustroid
+    return centr
 
 
 def plot_clustering_trees(G, graph: pd.DataFrame, sample_nodes: pd.DataFrame, sample_obj: pd.DataFrame, k):
@@ -210,7 +211,7 @@ def plot_clustering_trees(G, graph: pd.DataFrame, sample_nodes: pd.DataFrame, sa
         cluster_X = X[model.labels_ == cluster]
         cluster_nodes_index = sample_nodes_index[model.labels_ == cluster]
 
-        clustroid = cluster_nodes_index[get_clustroid(cluster_X)]
+        clustroid = cluster_nodes_index[get_centr(cluster_X)]
         cluster_nodes_index = set(cluster_nodes_index)
         cluster_nodes_index.discard(clustroid)
         clustroids_set.add(clustroid)
